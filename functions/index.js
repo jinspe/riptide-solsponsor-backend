@@ -10,3 +10,7 @@ admin.initializeApp({ credential: admin.credential.applicationDefault() });
 
 exports.testFunction = require("./src/testFunction/testFunction");
 exports.solanaTrans = require("./src/testFunction/solanaTransaction");
+exports.authentication = require("./src/authentication/authentication");
+exports.createUserName = require("./src/userSettings/createUserName");
+exports.updateUserName = require("./src/userSettings/updateUserName");
+exports.verifyTransaction = require("./src/payAccess/verifyTransaction");

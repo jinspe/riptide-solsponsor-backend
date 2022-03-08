@@ -1,8 +1,41 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /{document=**} {
-      allow read, write: if false;
+    match /users/{userId} {
+      allow create: if false
+      allow delete: if request.auth != null 
+                    && request.auth.uid == userId;
+
+      allow update: if request.auth != null 
+                    && request.auth.uid == userId
+                    && request.resource.data.displayName.size() < 50 
+
+      allow read: if true
+    }
+    match /creators/{userId} {
+       allow create: if request.auth != null 
+                    && request.auth.uid == userId
+                    && (request.resource.data.keys().hasOnly(
+                      ['displayName', 'bio','profileImage','coverImage'
+                      ,'tierImage','tierPrice','tierTitle','tierDescription']));
+
+      allow update: if request.auth != null 
+                    && request.auth.uid == userId
+                    && (request.resource.data.diff(resource.data).affectedKeys().hasOnly(
+                      ['displayName', 'bio','profileImage','coverImage'
+                      ,'tierImage','tierPrice','tierTitle','tierDescription']));                                            
+      allow read: if true
+    }
+
+    match /memberships/{userId} {
+      allow write: if false;
+      allow read: if true;
+    }
+
+    match /memberFiles/{userId} {
+      allow write: if request.auth != null 
+                  && request.auth.uid == userId;
+      allow read: if true;
     }
   }
 }
