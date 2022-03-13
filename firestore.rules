@@ -1,28 +1,32 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+
+    function isYourDocument(userId){
+      return request.auth != null && request.auth.uid == userId;
+    }
+    function isMember(cId){
+      return request.auth.token[cId] > request.time.toMillis();
+    }
+
     match /users/{userId} {
       allow create: if false
-      allow delete: if request.auth != null 
-                    && request.auth.uid == userId;
-
-      allow update: if request.auth != null 
-                    && request.auth.uid == userId
+      allow update: if isYourDocument(userId)
                     && request.resource.data.displayName.size() < 50 
-
+                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(
+                      ['displayName', 'isCreator', 'profileImage'])
       allow read: if true
     }
+
     match /creators/{userId} {
-       allow create: if request.auth != null 
-                    && request.auth.uid == userId
+       allow create: if isYourDocument(userId)
                     && (request.resource.data.keys().hasOnly(
-                      ['displayName', 'bio','profileImage','coverImage'
+                      ['displayName', 'bio','tags','profileImage','coverImage'
                       ,'tierImage','tierPrice','tierTitle','tierDescription']));
 
-      allow update: if request.auth != null 
-                    && request.auth.uid == userId
+      allow update: if isYourDocument(userId)
                     && (request.resource.data.diff(resource.data).affectedKeys().hasOnly(
-                      ['displayName', 'bio','profileImage','coverImage'
+                      ['displayName', 'bio','tags','profileImage','coverImage'
                       ,'tierImage','tierPrice','tierTitle','tierDescription']));                                            
       allow read: if true
     }
@@ -33,9 +37,20 @@ service cloud.firestore {
     }
 
     match /memberFiles/{userId} {
-      allow write: if request.auth != null 
-                  && request.auth.uid == userId;
+      allow write: if isYourDocument(userId) && isMember(request.resource.data.keys()[0]);
       allow read: if true;
+    }
+
+    // check the fields
+
+     match /posts/{cId}/previews/{postId} {
+      allow write: if isYourDocument(cId);
+      allow read: if true;
+    }
+
+    match /posts/{cId}/content/{postId} {
+      allow write: if isYourDocument(cId);
+      allow read: if isMember(cId) || isYourDocument(cId);
     }
   }
 }

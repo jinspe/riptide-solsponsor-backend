@@ -1,8 +1,12 @@
 rules_version = '2';
 
 // Returns true if the uploaded file is an image and its size is below the given number of MB.
-function isImageBelowMaxSize(maxSizeMB) {
+function isFileBelowMaxSize(maxSizeMB) {
   return request.resource.size < maxSizeMB * 1024 * 1024
+}
+
+function isImageBelowMaxSize(maxSizeMB) {
+  return isFileBelowMaxSize(maxSizeMB)
       && request.resource.contentType.matches('image/.*');
 }
 
@@ -17,8 +21,8 @@ function isCreatorFileNameAllowed(fileName) {
 }
 
 function isNftFileNameAllowed(fileName) {
-    return fileName == 'im.png' || 
-      fileName == 'mt.json';
+    return fileName == 'i.png' || 
+      fileName == 'm.json';
 }
 
 service firebase.storage {
@@ -30,9 +34,9 @@ service firebase.storage {
                    && isUserFileNameAllowed(fileName);
       allow read: if true;
     }
-    match /users/{userId}/n/{cId}/{fileName} {
+    match /n/{userId}/{cId}/{fileName} {
       allow write: if request.auth != null 
-                   && request.auth.uid == userId 
+                   && request.auth.uid[0:10] == userId[0:10]
                    && isNftFileNameAllowed(fileName);
       allow read: if true;
     }
@@ -44,6 +48,25 @@ service firebase.storage {
                    && isCreatorFileNameAllowed(fileName);
       allow read: if true;
     }
+
+    //  function isYourDocument(userId){
+    //   return request.auth != null && request.auth.uid == userId;
+    //   }
+    //  function isMember(cId){
+    //    return request.auth.token[cId] > request.time.toMillis();
+    //  }
+    match /posts/{cId}/{postId}/attachment/{attachmentName} {
+      allow create, update: if request.auth != null 
+                   && request.auth.uid == cId 
+                   && isFileBelowMaxSize(20);
+
+      allow delete: if request.auth != null 
+                   && request.auth.uid == cId ;
+
+      allow read: if (request.auth != null && request.auth.uid == cId) ;  
+                     // request.auth.token[cId] > request.time.toMillis();
+    }
+
 
     match /defaults/{file} {
       allow write: if false
